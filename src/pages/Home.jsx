@@ -1,9 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Thera, Eboi } from "../assets/images"
 import { useNavigate } from 'react-router-dom';
+import Loader from '../components/Loader';
 const Home = () => {
     const navigate = useNavigate()
     const [selectedCharacter, setSelectedCharacter] = useState(null);
+    const [isLoading, setIsLoading] = useState(true)
 
     const characters = [
         { id: 1, name: 'WARRIOR', color: 'red', image: Eboi },
@@ -32,6 +34,17 @@ const Home = () => {
             navigate(`/character/${id}`)
         }, 1000);
     }
+
+    useEffect(() => {
+        // Hide loading after 3 seconds
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 3000);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    if (isLoading) return <Loader />
 
     return (
         <div className="space-y-4 h-screen">

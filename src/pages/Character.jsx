@@ -88,7 +88,7 @@ const Character = () => {
     const activeCharacter = characters.filter(item => item.id === parseInt(id))
 
     return (
-        <div className="relative w-full bg-transparent overflow-hidden" style={{ height: "670px" }}>
+        <div className="relative w-full bg-transparent overflow-hidden" style={{ height: "600px" }}>
             {/* Game container - completely self-contained */}
             <div className="absolute inset-0 flex flex-col bg-gray-800 shadow-lg rounded-lg overflow-hidden">
                 {/* Fixed header with game title and image - not scrollable */}
