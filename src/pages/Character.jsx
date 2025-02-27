@@ -2,9 +2,35 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom'
 import { Thera, Eboi } from '../assets/images';
 import Loader from '../components/Loader';
+import { postRequest } from '../utils';
+
+
+const ChatDialogue = ({ dialogue }) => {
+    return (
+        <div
+            key={dialogue.id}
+            className={`${dialogue.isPlayer ? 'pl-4' : 'pr-4'}`}
+        >
+            <div className={`text-sm font-bold mb-1 ${dialogue.isPlayer ? 'text-blue-400' : 'text-yellow-400'
+                }`}>
+                {dialogue.character}
+            </div>
+            <div
+                className={`p-3 rounded-lg border-2 max-w-xs ${dialogue.isPlayer
+                    ? 'bg-blue-900 border-blue-700 self-end text-blue-100'
+                    : 'bg-yellow-900 border-yellow-700 self-start text-yellow-100'
+                    }`}
+            >
+                {dialogue.text}
+            </div>
+        </div>
+    )
+}
 
 const Character = () => {
     const { id } = useParams()
+    const [generating, setGenerating] = useState(false)
+    const [messages, setMessages] = useState([])
     const [dialogues, setDialogues] = useState([
         { id: 1, text: "Greetings, traveler! Welcome to the kingdom of Eldoria.", character: "Elder Mage", isPlayer: false },
         { id: 2, text: "Where am I? How did I get here?", character: "Player", isPlayer: true },
@@ -44,10 +70,11 @@ const Character = () => {
     }, [dialogues]);
 
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (inputText.trim() === '') return;
 
         // Add player dialogue
+        setGenerating(false)
         const newPlayerDialogue = {
             id: dialogues.length + 1,
             text: inputText,
@@ -59,24 +86,48 @@ const Character = () => {
         setInputText('');
 
         // Simulate NPC response
-        setTimeout(() => {
-            const responses = [
-                "Interesting choice, adventurer. The path ahead grows more treacherous.",
-                "Indeed! Your wisdom surprises me for one so new to our realm.",
-                "Hmm, not what I expected from a hero of prophecy, but we shall see...",
-                "The ancient scrolls spoke of your coming. Your words confirm my suspicions."
-            ];
+        // setTimeout(() => {
+        //     const responses = [
+        //         "Interesting choice, adventurer. The path ahead grows more treacherous.",
+        //         "Indeed! Your wisdom surprises me for one so new to our realm.",
+        //         "Hmm, not what I expected from a hero of prophecy, but we shall see...",
+        //         "The ancient scrolls spoke of your coming. Your words confirm my suspicions."
+        //     ];
 
-            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        //     const randomResponse = responses[Math.floor(Math.random() * responses.length)];
 
-            const npcDialogue = {
-                id: dialogues.length + 2,
-                text: randomResponse,
-                character: "Elder Mage",
-                isPlayer: false
-            };
-            setDialogues(prev => [...prev, npcDialogue]);
-        }, 1000);
+        //     const npcDialogue = {
+        //         id: dialogues.length + 2,
+        //         text: randomResponse,
+        //         character: "Elder Mage",
+        //         isPlayer: false
+        //     };
+        //     setDialogues(prev => [...prev, npcDialogue]);
+        // }, 1000);
+
+        setGenerating(true)
+        const postURL = `http://127.0.0.1:8000/dev/eval/generate_llm?input=${inputText}`
+        const response = await postRequest(postURL, {}, () => { })
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let done = false
+        let streamText = ''
+
+        while (!done) {
+            const { value, done: doneReading } = await reader.read()
+            done = doneReading
+            streamText += decoder.decode(value, { stream: true })
+            setMessages(streamText)
+            setGenerating(!done)
+        }
+        const npcDialogue = {
+            id: dialogues.length + 2,
+            text: streamText,
+            character: "Elder Mage",
+            isPlayer: false
+        };
+        setDialogues(prev => [...prev, npcDialogue])
+
     };
 
     const handleKeyPress = (e) => {
@@ -105,24 +156,16 @@ const Character = () => {
                     style={{ maxHeight: "calc(100% - 140px - 100px)" }} // Header (140px) and input area (100px) heights subtracted
                 >
                     {dialogues.map((dialogue) => (
-                        <div
-                            key={dialogue.id}
-                            className={`${dialogue.isPlayer ? 'pl-4' : 'pr-4'}`}
-                        >
-                            <div className={`text-sm font-bold mb-1 ${dialogue.isPlayer ? 'text-blue-400' : 'text-yellow-400'
-                                }`}>
-                                {dialogue.character}
-                            </div>
-                            <div
-                                className={`p-3 rounded-lg border-2 max-w-xs ${dialogue.isPlayer
-                                    ? 'bg-blue-900 border-blue-700 self-end text-blue-100'
-                                    : 'bg-yellow-900 border-yellow-700 self-start text-yellow-100'
-                                    }`}
-                            >
-                                {dialogue.text}
-                            </div>
-                        </div>
+                        <ChatDialogue dialogue={dialogue} />
                     ))}
+                    {
+                        generating && <ChatDialogue dialogue={{
+                            id: dialogues.length + 2,
+                            text: messages,
+                            character: "Elder Mage",
+                            isPlayer: false
+                        }} />
+                    }
                 </div>
 
                 {/* Fixed input area - not scrollable */}
