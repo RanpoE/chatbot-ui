@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Thera, Eboi } from "../assets/images"
+import { Thera, Eboi, Gaku } from "../assets/images"
 import { useNavigate } from 'react-router-dom';
 import Loader from '../components/Loader';
 const Home = () => {
@@ -10,7 +10,7 @@ const Home = () => {
     const characters = [
         { id: 1, name: 'WARRIOR', color: 'red', image: Eboi },
         { id: 2, name: 'MAGE', color: 'blue', image: Thera },
-        { id: 3, name: 'ROGUE', color: 'green' },
+        { id: 3, name: 'ROGUE', color: 'green', image: Gaku },
         { id: 4, name: 'ARCHER', color: 'yellow' },
         { id: 5, name: 'KNIGHT', color: 'purple' },
         { id: 6, name: 'HEALER', color: 'cyan' },
