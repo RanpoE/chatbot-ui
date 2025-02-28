@@ -90,7 +90,8 @@ const Character = () => {
         setGenerating(true)
 
         try {
-            const postURL = `http://127.0.0.1:8000/dev/eval/generate_llm?input=${inputText}`
+            const baseURL = process.env.REACT_APP_BASE_URL || 'http://127.0.0.1:8000'
+            const postURL = `${baseURL}/dev/eval/generate_llm?input=${inputText}`
             const response = await postRequest(postURL, {}, () => { })
             const reader = response.body.getReader()
             const decoder = new TextDecoder()
