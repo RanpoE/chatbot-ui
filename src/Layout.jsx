@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom';
+import { FaMapMarkerAlt } from "react-icons/fa";
 
 const Layout = ({ children }) => {
     const [activeTab, setActiveTab] = useState('home');
@@ -60,17 +61,15 @@ const Layout = ({ children }) => {
                             <span className="text-xs mt-1">Home</span>
                         </button>
                     </Link>
-                    <Link to="/profile">
+                    <Link to="locator">
                         <button
-                            className={`p-4 flex flex-col items-center flex-1 ${activeTab === 'profile' ? 'text-blue-600' : 'text-gray-500'}`}
+                            className={`p-4 flex flex-col items-center flex-1 ${activeTab === 'locator' ? 'text-blue-600' : 'text-gray-500'}`}
+                            onClick={() => setActiveTab('locator')}
                         >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                            </svg>
-                            <span className="text-xs mt-1">Profile</span>
+                            <FaMapMarkerAlt />
+                            <span className="text-xs mt-1">Locator</span>
                         </button>
                     </Link>
-
                     <Link to="settings">
                         <button
                             className={`p-4 flex flex-col items-center flex-1 ${activeTab === 'settings' ? 'text-blue-600' : 'text-gray-500'}`}
@@ -81,6 +80,16 @@ const Layout = ({ children }) => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                             </svg>
                             <span className="text-xs mt-1">Settings</span>
+                        </button>
+                    </Link>
+                    <Link to="/profile">
+                        <button
+                            className={`p-4 flex flex-col items-center flex-1 ${activeTab === 'profile' ? 'text-blue-600' : 'text-gray-500'}`}
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <span className="text-xs mt-1">Profile</span>
                         </button>
                     </Link>
                 </div>
