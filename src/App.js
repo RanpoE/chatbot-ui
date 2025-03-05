@@ -15,9 +15,10 @@ function App() {
           <Route path='/' element={<Main />} />
           <Route element={<ProtectedRoutes />}>
             <Route path='/profile' element={<Profile />} />
+            <Route path='/map/:id' element={<Locator />} />
             <Route path='/character/:id' element={<Character />} />
             <Route path='/settings' element={<Settings />} />
-            <Route path='/locator' element={<Locator />} />
+            <Route path='/map' element={<Locator />} />
           </Route>
         </Routes>
       </Layout>

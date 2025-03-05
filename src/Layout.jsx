@@ -61,13 +61,13 @@ const Layout = ({ children }) => {
                             <span className="text-xs mt-1">Home</span>
                         </button>
                     </Link>
-                    <Link to="locator">
+                    <Link to="map">
                         <button
                             className={`p-4 flex flex-col items-center flex-1 ${activeTab === 'locator' ? 'text-blue-600' : 'text-gray-500'}`}
                             onClick={() => setActiveTab('locator')}
                         >
                             <FaMapMarkerAlt />
-                            <span className="text-xs mt-1">Locator</span>
+                            <span className="text-xs mt-1">Map</span>
                         </button>
                     </Link>
                     <Link to="settings">

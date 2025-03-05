@@ -5,6 +5,7 @@ import { auth } from "../utils/firebase";
 import { authUser } from "../redux/actions/userActions";
 import Home from "./Home";
 import Login from "./Login";
+import UsersList from "./UserView";
 
 
 const Loader = () => {
@@ -48,7 +49,7 @@ const Main = () => {
 
     return (
         <Suspense fallback={Loader}>
-            {userDetails?.logged ? <Home /> : <Login />}
+            {userDetails?.logged ? <UsersList /> : <Login />}
         </Suspense>
     )
 }

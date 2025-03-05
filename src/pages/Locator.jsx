@@ -2,10 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { FaMapMarkedAlt } from 'react-icons/fa';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
+import { io } from 'socket.io-client';
+import { useParams } from 'react-router-dom';
+
 import { BusIcon, MapIcon } from '../assets/images';
+import axios from 'axios';
 
 
 const Locator = () => {
+    const { id } = useParams()
     const [myLocation, setMyLocation] = useState(null);
     const [otherLocation, setOtherLocation] = useState(null);
     const [distance, setDistance] = useState(null);
@@ -18,6 +23,14 @@ const Locator = () => {
     const [routes, setRoutes] = useState(null)
     const [bounds, setBounds] = useState([]);
 
+    const [socket, setSocket] = useState(null);
+
+    const newSocket = io('http://localhost:4000', {
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+    })
+
     // Get user's current location
     const getCurrentLocation = () => {
         setError(null);
@@ -26,13 +39,20 @@ const Locator = () => {
             setError('Geolocation is not supported by your browser');
             return;
         }
-
         navigator.geolocation.getCurrentPosition(
             (position) => {
+                const { latitude, longitude } = position.coords
                 const location = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
+                    lat: latitude,
+                    lng: longitude,
                 };
+
+                newSocket.emit('update_location', {
+                    latitude,
+                    longitude,
+                    timestamp: new Date().toISOString()
+                })
+
                 setMyLocation(location);
 
                 // Update map
@@ -40,16 +60,38 @@ const Locator = () => {
                     updateMap(location, otherLocation);
                 }
             },
-            () => {
-                setError('Unable to retrieve your location');
+            (error) => {
+                setError('Unable to retrieve your location ', error.message);
+            },
+            {
+                timeout: 5000,
+                maximumAge: 0
             }
         );
     };
+
+    const getOtherLocation = async (id) => {
+        const response = await axios.get(`http://localhost:8080/api/v1/location?userId=${id}`)
+        console.log(response, ' from api')
+        const { latitude, longitude} = response.data[0]
+        
+        const simulatedLocation = {
+            lat: latitude,
+            lng: longitude
+        };
+
+        setOtherLocation(simulatedLocation);
+
+        
+    }
 
     // Initialize map when component mounts
     useEffect(() => {
         // In a real implementation, you would load the Leaflet library and initialize the map
         // This is a simplified version for demonstration
+        // newSocket.emit("offer", { x: 1 })
+        setSocket(newSocket)
+
         const loadMap = () => {
             console.log("Leaflet map would be loaded here");
             setMapLoaded(true);
@@ -57,8 +99,20 @@ const Locator = () => {
 
 
         getCurrentLocation();
+        if (id) getOtherLocation(id)
         loadMap();
+
+        // return () => {
+        //     newSocket.disconnect()
+        // }
+
     }, []);
+
+    useEffect(() => {
+        if (!otherLocation || !myLocation) return 
+        updateMap(myLocation, otherLocation)
+        getRoute(myLocation, otherLocation)
+    }, [otherLocation, myLocation])
 
     // Update map with markers and route
     const updateMap = (location1, location2) => {
@@ -96,6 +150,7 @@ const Locator = () => {
         setShareId(mockShareId);
         setIsSharing(true);
 
+        setRoutes(null)
         // Simulate the other person's location for demo
         setTimeout(() => {
             // Create a location 1-3km away
@@ -129,8 +184,8 @@ const Locator = () => {
             const roadFactor = 1.2 + (Math.random() * 0.3); // Roads are typically 20-50% longer
             const routeDist = directDist * roadFactor;
             setRouteDistance(routeDist);
-
             updateMap(myLocation, simulatedLocation);
+            getRoute(myLocation, simulatedLocation)
         }, 2000);
     };
 
@@ -190,6 +245,7 @@ const Locator = () => {
     };
 
     const getRoute = async (start, end) => {
+        setRoutes(null)
         const response = await fetch(
             `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`
         );
@@ -201,15 +257,15 @@ const Locator = () => {
         setBounds([...routePoints, start, end]);
         return data;
     };
-
+    console.log(routes)
     const createCustomIcon = (imageURL) => {
         return L.icon({
-          iconUrl: imageURL,
-          iconSize: [30, 30],     // Size of the icon
-          iconAnchor: [15, 30],   // Point of the icon which corresponds to marker's location
-          popupAnchor: [0, -30]   // Point from which the popup should open
+            iconUrl: imageURL,
+            iconSize: [30, 30],     // Size of the icon
+            iconAnchor: [15, 30],   // Point of the icon which corresponds to marker's location
+            popupAnchor: [0, -30]   // Point from which the popup should open
         });
-      };
+    };
 
     // Format distance for display
     const formatDistance = (dist) => {
@@ -240,13 +296,13 @@ const Locator = () => {
                         {myLocation &&
                             <Marker position={[myLocation.lat, myLocation.lng]} icon={createCustomIcon(MapIcon)}>
                                 <Popup>
-                                    Your location
+                                    Ore
                                 </Popup>
                             </Marker>
                         }
                         {otherLocation &&
                             <Marker position={[otherLocation.lat, otherLocation.lng]} icon={createCustomIcon(BusIcon)}>
-                                <Popup>Other person</Popup>
+                                <Popup>Queens Express</Popup>
                             </Marker>
                         }
                         {/* {myLocation && otherLocation &&
