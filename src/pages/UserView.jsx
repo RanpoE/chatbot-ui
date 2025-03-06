@@ -27,7 +27,7 @@ const UsersList = () => {
             id: '2', 
             username: 'jane_smith', 
             name: 'Jane Smith', 
-            location: 'San Francisco, CA',
+            location: 'Canarom, PH',
             lastActive: '30 mins ago'
           }
         ];

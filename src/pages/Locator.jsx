@@ -23,9 +23,8 @@ const Locator = () => {
     const [routes, setRoutes] = useState(null)
     const [bounds, setBounds] = useState([]);
 
-    const [socket, setSocket] = useState(null);
 
-    const newSocket = io('http://localhost:4000', {
+    const newSocket = io(process.env.REACT_APP_SOCKET_URL, {
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000
@@ -46,19 +45,12 @@ const Locator = () => {
                     lat: latitude,
                     lng: longitude,
                 };
-
                 newSocket.emit('update_location', {
                     latitude,
                     longitude,
                     timestamp: new Date().toISOString()
                 })
-
                 setMyLocation(location);
-
-                // Update map
-                if (mapLoaded) {
-                    updateMap(location, otherLocation);
-                }
             },
             (error) => {
                 setError('Unable to retrieve your location ', error.message);
@@ -71,18 +63,25 @@ const Locator = () => {
     };
 
     const getOtherLocation = async (id) => {
-        const response = await axios.get(`http://localhost:8080/api/v1/location?userId=${id}`)
-        console.log(response, ' from api')
-        const { latitude, longitude} = response.data[0]
-        
-        const simulatedLocation = {
-            lat: latitude,
-            lng: longitude
-        };
+        const {
+            REACT_APP_API_URL
+        } = process.env
 
-        setOtherLocation(simulatedLocation);
+        try {
+            const response = await axios.get(`${REACT_APP_API_URL}/location?userId=${id}`)
+            const { latitude, longitude } = response.data[0]
 
-        
+            const otherLoc = {
+                lat: latitude,
+                lng: longitude
+            };
+
+            setOtherLocation(otherLoc);
+        } catch (error) {
+            console.log(error)
+        }
+
+
     }
 
     // Initialize map when component mounts
@@ -90,18 +89,13 @@ const Locator = () => {
         // In a real implementation, you would load the Leaflet library and initialize the map
         // This is a simplified version for demonstration
         // newSocket.emit("offer", { x: 1 })
-        setSocket(newSocket)
-
         const loadMap = () => {
             console.log("Leaflet map would be loaded here");
             setMapLoaded(true);
         };
-
-
         getCurrentLocation();
         if (id) getOtherLocation(id)
         loadMap();
-
         // return () => {
         //     newSocket.disconnect()
         // }
@@ -109,7 +103,7 @@ const Locator = () => {
     }, []);
 
     useEffect(() => {
-        if (!otherLocation || !myLocation) return 
+        if (!otherLocation || !myLocation) return
         updateMap(myLocation, otherLocation)
         getRoute(myLocation, otherLocation)
     }, [otherLocation, myLocation])
@@ -234,9 +228,9 @@ const Locator = () => {
             setDistance(directDist);
 
             // Simulate road distance
-            const roadFactor = 1.2 + (Math.random() * 0.3);
-            const routeDist = directDist * roadFactor;
-            setRouteDistance(routeDist);
+            // const roadFactor = 1.2 + (Math.random() * 0.3);
+            // const routeDist = directDist * roadFactor;
+            // setRouteDistance(routeDist);
             console.log(simulatedLocation, " mock")
 
             updateMap(myLocation, simulatedLocation);
@@ -253,11 +247,12 @@ const Locator = () => {
         setRoutes(data.routes[0].geometry);
 
         // Calculate bounds to fit both markers and the route
+        console.log(data)
         const routePoints = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
         setBounds([...routePoints, start, end]);
+        setRouteDistance(data.routes[0].distance / 1000)
         return data;
     };
-    console.log(routes)
     const createCustomIcon = (imageURL) => {
         return L.icon({
             iconUrl: imageURL,
@@ -422,6 +417,7 @@ const Locator = () => {
                         setJoinId('');
                         setOtherLocation(null);
                         setDistance(null);
+                        setRoutes(null)
                         setRouteDistance(null);
                     }}
                     className="w-full bg-gray-500 text-white py-2 rounded-md hover:bg-gray-600"
