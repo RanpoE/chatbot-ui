@@ -102,7 +102,7 @@ const Login = () => {
                         </p>
                     </form>
                     <section>
-                        {/* <button onClick={googleLogin} className='text-black'>Google</button> */}
+                        <button onClick={googleLogin} className='text-black'>Google</button>
                     </section>
                 </div>
             </div>

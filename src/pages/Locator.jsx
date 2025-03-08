@@ -1,139 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { FaMapMarkedAlt } from 'react-icons/fa';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, GeoJSON } from 'react-leaflet';
-import L from 'leaflet';
-import { io } from 'socket.io-client';
+import React from 'react';
+import { MapContainer, TileLayer, Marker, Popup, GeoJSON } from 'react-leaflet';
 import { useParams } from 'react-router-dom';
 
 import { BusIcon, MapIcon } from '../assets/images';
-import axios from 'axios';
-
+import { useLocation } from '../utils/useLocation';
+import { calculateDistance, formatDistance, deg2rad } from '../utils/distanceCalc';
+import { updateMap, routeStyle } from '../utils/mapUtils';
+import { createCustomIcon } from '../utils/mapUtils';
 
 const Locator = () => {
     const { id } = useParams()
-    const [myLocation, setMyLocation] = useState(null);
-    const [otherLocation, setOtherLocation] = useState(null);
-    const [distance, setDistance] = useState(null);
-    const [routeDistance, setRouteDistance] = useState(null);
-    const [error, setError] = useState(null);
-    const [isSharing, setIsSharing] = useState(false);
-    const [shareId, setShareId] = useState('');
-    const [joinId, setJoinId] = useState('');
-    const [mapLoaded, setMapLoaded] = useState(false);
-    const [routes, setRoutes] = useState(null)
-    const [bounds, setBounds] = useState([]);
+    const {
+        myLocation,
+        otherLocation,
+        error,
+        distance,
+        routeDistance,
+        isSharing,
+        setIsSharing,
+        shareId,
+        setShareId,
+        joinId,
+        setJoinId,
+        getCurrentLocation,
+        setOtherLocation,
+        setDistance,
+        setRouteDistance,
+        routes,
+        setRoutes,
+        getRoute,
+        joinWithId,
+        mockEmit
+    } = useLocation(id);
 
-
-    const newSocket = io(process.env.REACT_APP_SOCKET_URL, {
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000
-    })
-
-    // Get user's current location
-    const getCurrentLocation = () => {
-        setError(null);
-
-        if (!navigator.geolocation) {
-            setError('Geolocation is not supported by your browser');
-            return;
-        }
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords
-                const location = {
-                    lat: latitude,
-                    lng: longitude,
-                };
-                newSocket.emit('update_location', {
-                    latitude,
-                    longitude,
-                    timestamp: new Date().toISOString()
-                })
-                setMyLocation(location);
-            },
-            (error) => {
-                setError('Unable to retrieve your location ', error.message);
-            },
-            {
-                timeout: 5000,
-                maximumAge: 0
-            }
-        );
-    };
-
-    const getOtherLocation = async (id) => {
-        const {
-            REACT_APP_API_URL
-        } = process.env
-
-        try {
-            const response = await axios.get(`${REACT_APP_API_URL}/location?userId=${id}`)
-            const { latitude, longitude } = response.data[0]
-
-            const otherLoc = {
-                lat: latitude,
-                lng: longitude
-            };
-
-            setOtherLocation(otherLoc);
-        } catch (error) {
-            console.log(error)
-        }
-
-
-    }
-
-    // Initialize map when component mounts
-    useEffect(() => {
-        // In a real implementation, you would load the Leaflet library and initialize the map
-        // This is a simplified version for demonstration
-        // newSocket.emit("offer", { x: 1 })
-        const loadMap = () => {
-            console.log("Leaflet map would be loaded here");
-            setMapLoaded(true);
-        };
-        getCurrentLocation();
-        if (id) getOtherLocation(id)
-        loadMap();
-        // return () => {
-        //     newSocket.disconnect()
-        // }
-
-    }, []);
-
-    useEffect(() => {
-        if (!otherLocation || !myLocation) return
-        updateMap(myLocation, otherLocation)
-        getRoute(myLocation, otherLocation)
-    }, [otherLocation, myLocation])
-
-    // Update map with markers and route
-    const updateMap = (location1, location2) => {
-        // In a real implementation, this would update the Leaflet map
-        // with markers and a route between the points
-        console.log("Map updated with", location1, location2);
-    };
-
-    // Calculate distance between two points using Haversine formula
-    const calculateDistance = (loc1, loc2) => {
-        const R = 6371; // Radius of the earth in km
-        const dLat = deg2rad(loc2.lat - loc1.lat);
-        const dLng = deg2rad(loc2.lng - loc1.lng);
-        const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(deg2rad(loc1.lat)) * Math.cos(deg2rad(loc2.lat)) *
-            Math.sin(dLng / 2) * Math.sin(dLng / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const d = R * c; // Distance in km
-        return d;
-    };
-
-    const deg2rad = (deg) => {
-        return deg * (Math.PI / 180);
-    };
-
-    // Simulate sharing location
     const shareLocation = () => {
         if (!myLocation) {
             getCurrentLocation();
@@ -144,137 +43,33 @@ const Locator = () => {
         setShareId(mockShareId);
         setIsSharing(true);
 
-        setRoutes(null)
-        // Simulate the other person's location for demo
+        // Simulated logic for sharing location
         setTimeout(() => {
-            // Create a location 1-3km away
-            const bearing = Math.random() * 2 * Math.PI; // Random direction
-            const distance = 1 + Math.random() * 2; // 1-3km
-
-            // Calculate new point based on distance and bearing
+            const bearing = Math.random() * 2 * Math.PI;
+            const distance = 1 + Math.random() * 2;
             const lat2 = Math.asin(
                 Math.sin(deg2rad(myLocation.lat)) * Math.cos(distance / 6371) +
                 Math.cos(deg2rad(myLocation.lat)) * Math.sin(distance / 6371) * Math.cos(bearing)
             );
-
             const lng2 = deg2rad(myLocation.lng) +
                 Math.atan2(
                     Math.sin(bearing) * Math.sin(distance / 6371) * Math.cos(deg2rad(myLocation.lat)),
                     Math.cos(distance / 6371) - Math.sin(deg2rad(myLocation.lat)) * Math.sin(lat2)
                 );
-
-            const simulatedLocation = {
-                lat: lat2 * (180 / Math.PI),
-                lng: lng2 * (180 / Math.PI)
-            };
-
+            const simulatedLocation = { lat: lat2 * (180 / Math.PI), lng: lng2 * (180 / Math.PI) };
             setOtherLocation(simulatedLocation);
 
-            // Calculate distances
             const directDist = calculateDistance(myLocation, simulatedLocation);
             setDistance(directDist);
 
-            // Simulate road distance (typically longer than direct)
-            const roadFactor = 1.2 + (Math.random() * 0.3); // Roads are typically 20-50% longer
+            const roadFactor = 1.2 + (Math.random() * 0.3);
             const routeDist = directDist * roadFactor;
             setRouteDistance(routeDist);
             updateMap(myLocation, simulatedLocation);
-            getRoute(myLocation, simulatedLocation)
+            getRoute(myLocation, simulatedLocation);
         }, 2000);
     };
 
-    // Join with ID
-    const joinWithId = () => {
-        if (!myLocation) {
-            getCurrentLocation();
-            return;
-        }
-
-        if (!joinId) {
-            setError('Please enter a share ID');
-            return;
-        }
-
-        setError(null);
-        setIsSharing(true);
-
-        // Simulate finding the other person
-        setTimeout(() => {
-            // Create a location 1-5km away
-            const bearing = Math.random() * 2 * Math.PI; // Random direction
-            const distance = 1 + Math.random() * 4; // 1-5km
-
-            // Calculate new point based on distance and bearing
-            const lat2 = Math.asin(
-                Math.sin(deg2rad(myLocation.lat)) * Math.cos(distance / 6371) +
-                Math.cos(deg2rad(myLocation.lat)) * Math.sin(distance / 6371) * Math.cos(bearing)
-            );
-
-            const lng2 = deg2rad(myLocation.lng) +
-                Math.atan2(
-                    Math.sin(bearing) * Math.sin(distance / 6371) * Math.cos(deg2rad(myLocation.lat)),
-                    Math.cos(distance / 6371) - Math.sin(deg2rad(myLocation.lat)) * Math.sin(lat2)
-                );
-
-            const simulatedLocation = {
-                lat: lat2 * (180 / Math.PI),
-                lng: lng2 * (180 / Math.PI)
-            };
-
-            setOtherLocation(simulatedLocation);
-
-            // Calculate distances
-            const directDist = calculateDistance(myLocation, simulatedLocation);
-            setDistance(directDist);
-
-            // Simulate road distance
-            // const roadFactor = 1.2 + (Math.random() * 0.3);
-            // const routeDist = directDist * roadFactor;
-            // setRouteDistance(routeDist);
-            console.log(simulatedLocation, " mock")
-
-            updateMap(myLocation, simulatedLocation);
-            getRoute(myLocation, simulatedLocation)
-        }, 1500);
-    };
-
-    const getRoute = async (start, end) => {
-        setRoutes(null)
-        const response = await fetch(
-            `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`
-        );
-        const data = await response.json();
-        setRoutes(data.routes[0].geometry);
-
-        // Calculate bounds to fit both markers and the route
-        console.log(data)
-        const routePoints = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-        setBounds([...routePoints, start, end]);
-        setRouteDistance(data.routes[0].distance / 1000)
-        return data;
-    };
-    const createCustomIcon = (imageURL) => {
-        return L.icon({
-            iconUrl: imageURL,
-            iconSize: [30, 30],     // Size of the icon
-            iconAnchor: [15, 30],   // Point of the icon which corresponds to marker's location
-            popupAnchor: [0, -30]   // Point from which the popup should open
-        });
-    };
-
-    // Format distance for display
-    const formatDistance = (dist) => {
-        if (dist < 1) {
-            return `${Math.round(dist * 1000)} meters`;
-        }
-        return `${dist.toFixed(2)} kilometers`;
-    };
-
-    const routeStyle = {
-        color: '#3388ff',
-        weight: 6,
-        opacity: 0.65
-    };
 
     return (
         <div className="max-w-md mx-auto p-4 bg-gray-50 rounded-lg shadow-md">
@@ -321,7 +116,7 @@ const Locator = () => {
                             <p>Lng: {myLocation.lng.toFixed(6)}</p>
                         </div>
                         <button
-                            onClick={getCurrentLocation}
+                            onClick={mockEmit}
                             className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600"
                         >
                             Refresh
@@ -416,7 +211,6 @@ const Locator = () => {
                         setShareId('');
                         setJoinId('');
                         setOtherLocation(null);
-                        setDistance(null);
                         setRoutes(null)
                         setRouteDistance(null);
                     }}
