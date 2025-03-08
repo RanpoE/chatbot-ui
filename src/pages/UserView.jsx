@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import axios from 'axios';
 
 const UsersList = () => {
   const [users, setUsers] = useState([]);
@@ -8,50 +10,60 @@ const UsersList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedUsers, setSelectedUsers] = useState(new Set());
+  
   const navigate = useNavigate()
 
-  // Fetch users - replace with actual API call
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        // Simulated user data - replace with actual API
-        const mockUsers = [
-          { 
-            id: '1', 
-            username: 'john_doe', 
-            name: 'John Doe', 
-            location: 'Putiao, PH',
-            lastActive: '2 hours ago'
-          },
-          { 
-            id: '2', 
-            username: 'jane_smith', 
-            name: 'Jane Smith', 
-            location: 'Canarom, PH',
-            lastActive: '30 mins ago'
-          }
-        ];
+  const userDetails = useSelector(state => state.user)
 
-        setUsers(mockUsers);
-        setFilteredUsers(mockUsers);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to fetch users');
-        setLoading(false);
-      }
-    };
+  // Fetch users - replace with actual API call
+  const fetchUsers = async () => {
+    try {
+      // Simulated user data - replace with actual API
+      // const mockUsers = [
+      //   { 
+      //     id: '1', 
+      //     username: 'john_doe', 
+      //     name: 'John Doe', 
+      //     location: 'Putiao, PH',
+      //     lastActive: '2 hours ago'
+      //   },
+      //   { 
+      //     id: '2', 
+      //     username: 'jane_smith', 
+      //     name: 'Jane Smith', 
+      //     location: 'Bayawas, PH',
+      //     lastActive: '30 mins ago'
+      //   }
+      // ];
+      const data = await axios.get(`${process.env.REACT_APP_API_URL}/api/v1/users`, {
+        headers: {
+          Authorization: `Bearer ${userDetails?.idToken}`
+        }
+      })
+      console.log(data)
+      console.log(data.data)
+      setUsers(data);
+      setFilteredUsers(data.data);
+      setLoading(false);
+    } catch (err) {
+      setError('Failed to fetch users');
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    
 
     fetchUsers();
   }, []);
 
   // Search functionality
   useEffect(() => {
+    if (!users.length) return
     const filtered = users.filter(user => 
-      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.location.toLowerCase().includes(searchTerm.toLowerCase())
+      user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    setFilteredUsers(filtered);
+    // setFilteredUsers(filtered);
   }, [searchTerm, users]);
 
   // Toggle user selection
@@ -136,9 +148,9 @@ const UsersList = () => {
               >
                 <div>
                   <div className="flex items-center">
-                    <h2 className="font-semibold text-lg">{user.name}</h2>
+                    <h2 className="font-semibold text-lg">{user.displayName || "User-"+user.id.slice(0,3) }</h2>
                     <span className="ml-2 text-gray-500 text-sm">
-                      @{user.username}
+                      @{user.email}
                     </span>
                   </div>
                   <div className="flex items-center text-gray-600 mt-1">
@@ -149,7 +161,7 @@ const UsersList = () => {
                     <p className="text-sm">{user.location}</p>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Last active: {user.lastActive}
+                    Last active: {user.lastLogin?._seconds}
                   </p>
                 </div>
                 <button 

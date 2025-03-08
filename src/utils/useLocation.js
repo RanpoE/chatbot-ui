@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import { deg2rad } from './distanceCalc';
 import { updateMap } from './mapUtils';
 import { calculateDistance } from './distanceCalc';
+import { useSelector } from 'react-redux';
 
 export const useLocation = (id) => {
     const [myLocation, setMyLocation] = useState(null);
@@ -18,11 +19,35 @@ export const useLocation = (id) => {
     const [shareId, setShareId] = useState('');
     const [joinId, setJoinId] = useState('');
 
+    const userDetails = useSelector(state => state.user)
+
     const newSocket = io(process.env.REACT_APP_SOCKET_URL, {
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000
     });
+
+    useEffect(() => {
+        newSocket.on("location_update", (data) => {
+            const { userId } = data
+            console.log(data, "backend", id)
+            if (userId === id) setOtherLocation(data)
+        })
+    }, [])
+
+
+    const mockEmit = () => {
+        // Logic for updating my location
+        // const mockData = {
+        //     userId: id,
+        //     lat: 12.98446097364223,
+        //     lng: 123.6996677398205,
+        //     timestamp: new Date().toISOString()
+        // }
+
+        // newSocket.emit('update_location', mockData)
+
+    }
 
     const getCurrentLocation = () => {
         setError(null);
@@ -35,10 +60,13 @@ export const useLocation = (id) => {
                 const { latitude, longitude } = position.coords;
                 const location = { lat: latitude, lng: longitude };
                 newSocket.emit('update_location', {
+                    userId: userDetails.uid,
                     latitude,
                     longitude,
                     timestamp: new Date().toISOString(),
                 });
+
+                console.log(userDetails, " details")
                 setMyLocation(location);
             },
             (error) => {
@@ -51,9 +79,10 @@ export const useLocation = (id) => {
     const getOtherLocation = async (id) => {
         const { REACT_APP_API_URL } = process.env;
         try {
-            const response = await axios.get(`${REACT_APP_API_URL}/location?userId=${id}`);
+            const response = await axios.get(`${REACT_APP_API_URL}/api/v1/location?userId=${id}`);
             const { latitude, longitude } = response.data[0];
             const otherLoc = { lat: latitude, lng: longitude };
+            console.log(otherLoc, " loc")
             setOtherLocation(otherLoc);
         } catch (error) {
             console.log(error);
@@ -77,15 +106,23 @@ export const useLocation = (id) => {
 
     const getRoute = async (start, end) => {
         setRoutes(null);
-        const response = await fetch(
-            `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`
-        );
-        const data = await response.json();
-        setRoutes(data.routes[0].geometry);
-        const routePoints = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-        setBounds([...routePoints, start, end]);
-        setRouteDistance(data.routes[0].distance / 1000);
-        return data;
+        if (!start || !end) return
+
+        try {
+            const response = await fetch(
+                `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`
+            );
+            const data = await response.json();
+            setRoutes(data.routes[0].geometry);
+            const routePoints = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
+            setBounds([...routePoints, start, end]);
+            setRouteDistance(data.routes[0].distance / 1000);
+            return data;
+        } catch (error) {
+            console.error(error)
+        }
+
+        
     };
 
     const joinWithId = () => {
@@ -164,6 +201,8 @@ export const useLocation = (id) => {
         setRoutes,
         setOtherLocation,
         joinWithId,
-        setRouteDistance
+        setDistance,
+        setRouteDistance,
+        mockEmit
     };
 };

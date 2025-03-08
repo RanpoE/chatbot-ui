@@ -30,6 +30,7 @@ const Locator = () => {
         setRoutes,
         getRoute,
         joinWithId,
+        mockEmit
     } = useLocation(id);
 
     const shareLocation = () => {
@@ -115,7 +116,7 @@ const Locator = () => {
                             <p>Lng: {myLocation.lng.toFixed(6)}</p>
                         </div>
                         <button
-                            onClick={getCurrentLocation}
+                            onClick={mockEmit}
                             className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600"
                         >
                             Refresh
